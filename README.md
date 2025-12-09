@@ -4,13 +4,13 @@
 
 ### What's unused?
 **Fields:** A field is not used if and only if it's:
-1- Not used in any xml view.
-2- Not used in any xml data (server actions and ir crons for now)
-3- Not used in any method as the right side of an assignment.
+1. Not used in any xml view.
+2. Not used in any xml data (server actions and ir crons for now)
+3. Not used in any method as the right side of an assignment.
 
 **Methods:** A method is not used if an only if it's:
-1- Not used in any xml view (From a button)
-2- Not used in any other method
+1. Not used in any xml view (From a button)
+2. Not used in any other method
 
 
 Somethings are missing for now and they are indicated with TODOs
