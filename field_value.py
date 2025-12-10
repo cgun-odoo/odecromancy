@@ -3,10 +3,12 @@ import logging
 from typing import List
 
 class FieldValue:
-    def __init__(self, field_name, **kwargs):
+
+    def __init__(self, field_name, definition_path="", **kwargs):
         self.name = field_name
         self.attributes = kwargs
         self.unused_percentage = 100
+        self.definition_path: str = definition_path
 
     def reduce_certainty(self):
         self.unused_percentage -= 25
@@ -21,11 +23,15 @@ class FieldValue:
         return self
 
 class MethodValue:
-    def __init__(self, method_name: str, ast_function: ast.FunctionDef):
+
+    def __init__(
+        self, method_name: str, ast_function: ast.FunctionDef, definition_path=""
+    ):
         self.name = method_name
         self.function_definitions = [ast_function]
         self.unused_percentage = 100
         self.dependencies: List[FieldValue] = []
+        self.definition_path: str = definition_path
 
     def reduce_certainty(self):
         self.unused_percentage -= 25
