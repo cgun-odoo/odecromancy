@@ -3,10 +3,15 @@ import logging
 from typing import List
 
 class FieldValue:
-    def __init__(self, field_name, **kwargs):
+
+    def __init__(self, field_name, definition_paths=None, **kwargs):
         self.name = field_name
         self.attributes = kwargs
         self.unused_percentage = 100
+        if definition_paths is None:
+            self.definition_paths = set()
+        else:
+            self.definition_paths = definition_paths
 
     def reduce_certainty(self):
         self.unused_percentage -= 25
@@ -18,14 +23,22 @@ class FieldValue:
         for key, value in other.attributes.items():
             if value:
                 self.attributes[key] = other.attributes[key]
+        self.definition_paths |= other.definition_paths
         return self
 
 class MethodValue:
-    def __init__(self, method_name: str, ast_function: ast.FunctionDef):
+
+    def __init__(
+        self, method_name: str, ast_function: ast.FunctionDef, definition_paths=None
+    ):
         self.name = method_name
         self.function_definitions = [ast_function]
         self.unused_percentage = 100
         self.dependencies: List[FieldValue] = []
+        if definition_paths is None:
+            self.definition_paths = set()
+        else:
+            self.definition_paths = definition_paths
 
     def reduce_certainty(self):
         self.unused_percentage -= 25
@@ -36,6 +49,7 @@ class MethodValue:
         # A function can be defined multiple times. If it's used all of them are used. We don't care about overriding here.
         self.function_definitions += other.function_definitions
         self.unused_percentage = min(self.unused_percentage, other.unused_percentage)
+        self.definition_paths |= other.definition_paths
         return self
 
     def __hash__(self):

@@ -56,7 +56,7 @@ def extract_chain_from_call(call_node: ast.Call):
     return list(reversed(chain)), name
 
 
-def _find_fields(class_):
+def _find_fields(class_, file_path):
     fields = set()
     for assign in (elem for elem in class_.body if isinstance(elem, ast.Assign)):
         if not isinstance(assign.value, ast.Call):
@@ -68,7 +68,9 @@ def _find_fields(class_):
             continue
         if assign.value.func.value.id != "fields":
             continue
-        field = FieldValue(assign.targets[0].id)
+
+        definition_path = f"{file_path}:{assign.lineno}"
+        field = FieldValue(assign.targets[0].id, definition_paths={definition_path})
         if assign.value.func.attr in ["Many2one", "One2many", "Many2many"]:
             field.attributes["relational"] = True
             if assign.value.args:
@@ -119,6 +121,7 @@ def get_decorator_name(decorator_node):
 
 def _find_methods(
     class_,
+    file_path,
 ):  # Methods that might not be used. (action methods helped functions)
     methods = set()
     for functionDef in (
@@ -147,7 +150,13 @@ def _find_methods(
             or functionDef.name.startswith("_default")
         ):
             continue
-        methods.add(MethodValue(functionDef.name, functionDef))
+        methods.add(
+            MethodValue(
+                functionDef.name,
+                functionDef,
+                definition_paths={f"{file_path}:{functionDef.lineno}"},
+            )
+        )
     return methods
 
 
@@ -215,8 +224,12 @@ def initialize_definitions_map(file_path):
             if not model:
                 logging.warning("Class does not correspond to model %s", file_path)
                 continue
-            model.fields = {field.name: field for field in _find_fields(class_)}
-            model.methods = {method.name: method for method in _find_methods(class_)}
+            model.fields = {
+                field.name: field for field in _find_fields(class_, file_path)
+            }
+            model.methods = {
+                method.name: method for method in _find_methods(class_, file_path)
+            }
             if definitions_map.get(model.name):
                 definitions_map[model.name] |= model
             else:
@@ -705,16 +718,31 @@ def main():
     for model_name, model in definitions_map.items():
         if not model.fields and not model.methods:
             continue
-
-        print(model_name)
         unused_fields = [
-            v.name for k, v in model.fields.items() if v.unused_percentage == 100
+            (field.name, field.definition_paths)
+            for field in model.fields.values()
+            if field.unused_percentage >= 100
         ]
-        print("FIELDS: ", unused_fields)
         unused_methods = [
-            v.name for k, v in model.methods.items() if v.unused_percentage == 100
+            (method.name, method.definition_paths)
+            for method in model.methods.values()
+            if method.unused_percentage >= 100
         ]
-        print("METHODS: ", unused_methods)
+        if not unused_fields and not unused_methods:
+            continue
+        print(model_name)
+        if unused_fields:
+            print("FIELDS: ")
+            for field, definition_paths in unused_fields:
+                print(f"\t{field}")
+                for definition_path in definition_paths:
+                    print(f"\t\t{definition_path}")
+        if unused_methods:
+            print("METHODS: ")
+            for method, definition_paths in unused_methods:
+                print(f"\t{method}")
+                for definition_path in definition_paths:
+                    print(f"\t\t{definition_path}")
         print("----------------------")
 
 
