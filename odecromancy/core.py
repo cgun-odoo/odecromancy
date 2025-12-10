@@ -3,9 +3,9 @@ import logging
 from xml.etree import ElementTree
 from typing import Dict, List, Set, Optional
 
-from models import ModelValue, FieldValue, MethodValue
-from visitors import FieldCollector
-from utils import (
+from .models import ModelValue, FieldValue, MethodValue
+from .visitors import FieldCollector
+from .utils import (
     find_modules,
     extract_init,
     extract_manifest,
