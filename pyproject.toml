@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "odecromancy"
+version = "0.1.0"
+description = "Imperfectly finds unused code in an Odoo project."
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    # Add any external dependencies here, e.g. 'lxml' if you used it
+]
+
+[project.scripts]
+# This maps the command 'odecromancy' to the function 'main' in 'odecromancy/main.py'
+odecromancy = "odecromancy.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]  # Scans for packages in the current directory
+include = ["odecromancy*"]

@@ -1,6 +1,6 @@
 import sys
 import logging
-from core import OdooAnalyzer
+from .core import OdooAnalyzer
 
 
 def main():

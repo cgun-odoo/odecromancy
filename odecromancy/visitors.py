@@ -1,7 +1,7 @@
 import ast
 from collections import defaultdict
 from typing import List, Tuple, Dict, Any, Optional
-from models import FieldValue, MethodValue
+from .models import FieldValue, MethodValue
 
 
 class FieldCollector(ast.NodeVisitor):
