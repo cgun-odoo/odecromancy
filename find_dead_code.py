@@ -70,7 +70,7 @@ def _find_fields(class_, file_path):
             continue
 
         definition_path = f"{file_path}:{assign.lineno}"
-        field = FieldValue(assign.targets[0].id, definition_path=definition_path)
+        field = FieldValue(assign.targets[0].id, definition_paths={definition_path})
         if assign.value.func.attr in ["Many2one", "One2many", "Many2many"]:
             field.attributes["relational"] = True
             if assign.value.args:
@@ -154,7 +154,7 @@ def _find_methods(
             MethodValue(
                 functionDef.name,
                 functionDef,
-                definition_path=f"{file_path}:{functionDef.lineno}",
+                definition_paths={f"{file_path}:{functionDef.lineno}"},
             )
         )
     return methods
@@ -719,12 +719,12 @@ def main():
         if not model.fields and not model.methods:
             continue
         unused_fields = [
-            f" - {field.definition_path}:{field.name}"
+            (field.name, field.definition_paths)
             for field in model.fields.values()
             if field.unused_percentage >= 100
         ]
         unused_methods = [
-            f" - {method.definition_path}:{method.name}"
+            (method.name, method.definition_paths)
             for method in model.methods.values()
             if method.unused_percentage >= 100
         ]
@@ -733,12 +733,16 @@ def main():
         print(model_name)
         if unused_fields:
             print("FIELDS: ")
-            for field in unused_fields:
-                print(field)
+            for field, definition_paths in unused_fields:
+                print(f"\t{field}")
+                for definition_path in definition_paths:
+                    print(f"\t\t{definition_path}")
         if unused_methods:
             print("METHODS: ")
-            for method in unused_methods:
-                print(method)
+            for method, definition_paths in unused_methods:
+                print(f"\t{method}")
+                for definition_path in definition_paths:
+                    print(f"\t\t{definition_path}")
         print("----------------------")
 
 
