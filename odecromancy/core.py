@@ -9,6 +9,7 @@ from .utils import (
     find_modules,
     extract_init,
     extract_manifest,
+    extract_ignored_map,
     get_str_from_constant_or_name,
     get_decorator_name,
 )
@@ -17,10 +18,11 @@ from .utils import (
 class OdooAnalyzer:
     def __init__(self):
         self.definitions_map: Dict[str, ModelValue] = {}
+        self.ignored_map: Dict[str, object] = {}
         self.python_file_paths: List[str] = []
         self.xml_file_paths: List[str] = []
 
-    def scan_directory(self, path: str):
+    def scan_directory(self, path: str, ignore_file_path: str = None):
         modules = find_modules(path)
         for module_path in modules:
             self.python_file_paths.extend(extract_init(module_path))
@@ -32,6 +34,9 @@ class OdooAnalyzer:
             for p in self.python_file_paths
             if "migration" not in p and "tests" not in p
         ]
+
+        if ignore_file_path:
+            self.ignored_map = extract_ignored_map(ignore_file_path)
 
     def analyze(self):
         # 1. Parse Python files to build models
@@ -54,18 +59,20 @@ class OdooAnalyzer:
 
     def report(self):
         for model_name, model in self.definitions_map.items():
+            if model_name in self.ignored_map.get('models', []):
+                continue
             if not model.fields and not model.methods:
                 continue
 
             unused_fields = [
                 (field.name, field.definition_paths)
                 for field in model.fields.values()
-                if field.unused_percentage >= 100
+                if field.unused_percentage >= 100 and field.name not in self.ignored_map.get('fields', [])
             ]
             unused_methods = [
                 (method.name, method.definition_paths)
                 for method in model.methods.values()
-                if method.unused_percentage >= 100
+                if method.unused_percentage >= 100 and method.name not in self.ignored_map.get('methods', [])
             ]
 
             if not unused_fields or not unused_methods:
@@ -250,7 +257,7 @@ class OdooAnalyzer:
                 continue
             if func_def.name in ignored_methods:
                 continue
-            if func_def.name.startswith(("_compute", "_inverse", "_default")):
+            if func_def.name.startswith(("_compute", "_inverse", "_default", "_search")):
                 continue
 
             methods.add(
@@ -414,10 +421,10 @@ class OdooAnalyzer:
             used |= self._extract_fields_from_xml_attributes(model_name, field)
 
             # Sub-views (one2many)
-            if fdef and (field.find(".//tree") or field.find(".//form")):
+            if fdef and (field.find(".//tree") or field.find(".//form") or field.find(".//list")):
                 comodel = fdef.attributes.get("comodel_name")
                 if comodel and comodel in self.definitions_map:
-                    sub_root = field.find(".//tree") or field.find(".//form")
+                    sub_root = field.find(".//tree") or field.find(".//form") or field.find(".//list")
                     for sub_field in sub_root.findall(".//field[@name]"):
                         sub_fname = sub_field.get("name")
                         self.definitions_map[comodel].field_used_in_view(sub_fname)
@@ -437,6 +444,8 @@ class OdooAnalyzer:
                 model.method_used(method_name, 100)
                 used_attrs = self._extract_fields_from_xml_attributes(model_name, btn)
                 model.field_used_multi(list(used_attrs), 100)
+
+        # TODO: Check domains in filters
 
     def _parse_xml_data_code(self, record_node):
         model_name = self._get_xml_record_model(record_node)

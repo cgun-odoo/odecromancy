@@ -1,20 +1,23 @@
 import sys
 import logging
+import argparse
 from .core import OdooAnalyzer
 
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python -m odecromancy.main <path_to_odoo_project>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(prog="Odecromancy", usage='%(prog)s project_path [options]')
+    parser.add_argument("project_path")
+    parser.add_argument("-i", "--ignore")
+    args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
 
-    project_path = sys.argv[1]
+    project_path = args.project_path
+    ignore_file_path = args.ignore
     analyzer = OdooAnalyzer()
 
     print(f"Scanning {project_path}...")
-    analyzer.scan_directory(project_path)
+    analyzer.scan_directory(project_path, ignore_file_path=ignore_file_path)
 
     print("Analyzing code...")
     analyzer.analyze()

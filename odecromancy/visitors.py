@@ -179,17 +179,19 @@ class FieldCollector(ast.NodeVisitor):
 
     def _handle_orm_context_change(self, node, model_name, method_name):
         if (
-            method_name == "mapped"
+            method_name in ("mapped", "filtered", "filtered_domain")
             and node.args
             and isinstance(node.args[0], ast.Constant)
             and isinstance(node.args[0].value, str)
         ):
             field_name_str = node.args[0].value
             self._track_field_usage(model_name, field_name_str)
-            field_value = self._get_field_info(model_name, field_name_str)
-            if field_value and field_value.attributes.get("comodel_name"):
-                new_model = field_value.attributes["comodel_name"]
-                self.model_context_stack.append((new_model, "mapped_call"))
+
+            if method_name == "mapped":
+                field_value = self._get_field_info(model_name, field_name_str)
+                if field_value and field_value.attributes.get("comodel_name"):
+                    new_model = field_value.attributes["comodel_name"]
+                    self.model_context_stack.append((new_model, "mapped_call"))
 
     def _visit_comprehension(self, node):
         original_stack_size = len(self.model_context_stack)

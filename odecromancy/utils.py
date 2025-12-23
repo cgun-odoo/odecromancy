@@ -96,3 +96,10 @@ def extract_manifest(module_path: str) -> List[str]:
         except Exception as e:
             logging.error(f"Error parsing manifest {manifest_path}: {e}")
     return xml_files
+
+def extract_ignored_map(file_path: str):
+    try:
+        with open(file_path, "r") as ignored_file:
+            return ast.literal_eval(ignored_file.read())
+    except Exception as e:
+        logging.error(f"Error parsing the cool list at {file_path}: {e}")
